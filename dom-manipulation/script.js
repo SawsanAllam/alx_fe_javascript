@@ -103,18 +103,20 @@
 // //     newQuoteText.value= '';
 // //     newQuoteCategory.value= '';
 // // })
+
 const quoteDisplay = document.getElementById("quoteDisplay");
 const newQuoteBtn = document.getElementById("newQuote");
 const exportBtn = document.getElementById("exportBtn");
 const importFile = document.getElementById("importFile");
 const categoryFilter = document.getElementById("categoryFilter");
+const syncStatus = document.getElementById("syncStatus");
 
 let quotes = [
-  { text: "Those who don’t believe in magic will never find it.", category: "Inspiration" },
-  { text: "Light tomorrow with today.", category: "Hope" },
-  { text: "Every strike brings me closer to the next home run.", category: "Motivation" },
-  { text: "Happiness depends upon ourselves.", category: "Philosophy" },
-  { text: "The best way to predict the future is to create it.", category: "Success" }
+  { id: 1, text: "Those who don’t believe in magic will never find it.", category: "Inspiration" },
+  { id: 2, text: "Light tomorrow with today.", category: "Hope" },
+  { id: 3, text: "Every strike brings me closer to the next home run.", category: "Motivation" },
+  { id: 4, text: "Happiness depends upon ourselves.", category: "Philosophy" },
+  { id: 5, text: "The best way to predict the future is to create it.", category: "Success" }
 ];
 
 // 🔹 تحميل الكوتس من Local Storage
@@ -134,9 +136,7 @@ function saveQuotes() {
 //  فلترة الكوتس حسب الكاتيجوري
 // ============================
 function populateCategories() {
-  // نجيب كل الكاتيجوريز الفريدة
   const categories = ["all", ...new Set(quotes.map(q => q.category))];
-
   categoryFilter.innerHTML = "";
   categories.forEach(cat => {
     const option = document.createElement("option");
@@ -145,7 +145,6 @@ function populateCategories() {
     categoryFilter.appendChild(option);
   });
 
-  // تحميل آخر فلتر محفوظ من localStorage
   const savedFilter = localStorage.getItem("selectedCategory");
   if (savedFilter && categories.includes(savedFilter)) {
     categoryFilter.value = savedFilter;
@@ -154,13 +153,12 @@ function populateCategories() {
   }
 }
 
-// فلترة الكوتس حسب الكاتيجوري
 function filterQuotes() {
   const selectedCategory = categoryFilter.value;
   localStorage.setItem("selectedCategory", selectedCategory);
 
-  let filteredQuotes = selectedCategory === "all" 
-    ? quotes 
+  let filteredQuotes = selectedCategory === "all"
+    ? quotes
     : quotes.filter(q => q.category === selectedCategory);
 
   if (filteredQuotes.length > 0) {
@@ -172,7 +170,6 @@ function filterQuotes() {
   }
 }
 
-// عند الضغط على زر "Show New Quote"
 newQuoteBtn.addEventListener("click", filterQuotes);
 
 // ============================
@@ -194,13 +191,15 @@ function createAddQuoteForm() {
 
   addButton.addEventListener("click", function () {
     let newQuoteAdd = {
+      id: Date.now(), // unique ID
       text: textInput.value,
       category: categoryInput.value,
     };
     if (newQuoteAdd.text && newQuoteAdd.category) {
       quotes.push(newQuoteAdd);
       saveQuotes();
-      populateCategories(); // تحديث الكاتيجوريز
+      populateCategories();
+      syncWithServer("POST", newQuoteAdd); // Sync with server
       textInput.value = "";
       categoryInput.value = "";
       alert("Quote added successfully!");
@@ -217,7 +216,7 @@ function createAddQuoteForm() {
 createAddQuoteForm();
 
 // ============================
-//  Export Quotes to JSON
+//  Export / Import
 // ============================
 exportBtn.addEventListener("click", function () {
   const blob = new Blob([JSON.stringify(quotes, null, 2)], { type: "application/json" });
@@ -229,9 +228,6 @@ exportBtn.addEventListener("click", function () {
   URL.revokeObjectURL(url);
 });
 
-// ============================
-//  Import Quotes from JSON
-// ============================
 importFile.addEventListener("change", function (event) {
   const fileReader = new FileReader();
   fileReader.onload = function (e) {
@@ -240,7 +236,7 @@ importFile.addEventListener("change", function (event) {
       if (Array.isArray(importedQuotes)) {
         quotes.push(...importedQuotes);
         saveQuotes();
-        populateCategories(); // تحديث الكاتيجوريز بعد الاستيراد
+        populateCategories();
         alert("Quotes imported successfully!");
       } else {
         alert("Invalid JSON format!");
@@ -253,7 +249,58 @@ importFile.addEventListener("change", function (event) {
 });
 
 // ============================
-//  تحميل الفلتر + عرض أول كوت
+//  Sync with Mock Server
+// ============================
+// هنا بنستخدم JSONPlaceholder كـ API وهمي
+const SERVER_URL = "https://jsonplaceholder.typicode.com/posts"; 
+
+async function syncWithServer(method = "GET", data = null) {
+  try {
+    syncStatus.textContent = "🔄 Syncing...";
+
+    if (method === "GET") {
+      let response = await fetch(SERVER_URL);
+      let serverData = await response.json();
+
+      // Conflict Resolution → server data takes precedence
+      let serverQuotes = serverData.slice(0, 5).map((item, index) => ({
+        id: item.id,
+        text: item.title,
+        category: "Server"
+      }));
+
+      // دمج: بيانات السيرفر تحل محل البيانات المحلية
+      quotes = [...quotes, ...serverQuotes];
+      quotes = Array.from(new Map(quotes.map(q => [q.id, q])).values()); // remove duplicates
+      saveQuotes();
+      populateCategories();
+      filterQuotes();
+
+      syncStatus.textContent = "✅ Synced with server";
+    }
+
+    if (method === "POST" && data) {
+      await fetch(SERVER_URL, {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" }
+      });
+      syncStatus.textContent = "✅ Data sent to server";
+    }
+
+  } catch (error) {
+    syncStatus.textContent = "⚠️ Sync failed!";
+  }
+}
+
+// Sync أول مرة
+syncWithServer("GET");
+
+// Sync كل 30 ثانية
+setInterval(() => syncWithServer("GET"), 30000);
+
+// ============================
+//  Init
 // ============================
 populateCategories();
 filterQuotes();
