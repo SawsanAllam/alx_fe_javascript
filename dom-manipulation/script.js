@@ -304,5 +304,115 @@ setInterval(() => syncWithServer("GET"), 30000);
 // ============================
 populateCategories();
 filterQuotes();
+// script.js
+
+let quotes = JSON.parse(localStorage.getItem("quotes")) || [];
+
+// محاكاة سيرفر (باستخدام JSONPlaceholder)
+const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
+
+// حفظ الكوتس في localStorage
+function saveQuotes() {
+  localStorage.setItem("quotes", JSON.stringify(quotes));
+}
+
+// عرض Quotes
+function displayQuotes() {
+  const container = document.getElementById("quoteContainer");
+  container.innerHTML = "";
+  quotes.forEach(q => {
+    const p = document.createElement("p");
+    p.textContent = `${q.text} [${q.category}]`;
+    container.appendChild(p);
+  });
+}
+
+// إضافة Quote جديدة
+function addQuote() {
+  const input = document.getElementById("newQuote");
+  const text = input.value.trim();
+  if (text === "") return;
+
+  const newQuote = { text, category: "local" };
+  quotes.push(newQuote);
+  saveQuotes();
+  displayQuotes();
+  postToServer(newQuote); // نبعته للسيرفر (محاكاة)
+  input.value = "";
+}
+
+// جلب البيانات من السيرفر
+async function fetchFromServer() {
+  try {
+    const res = await fetch(SERVER_URL);
+    const data = await res.json();
+
+    // هنستخدم اول 5 عناصر كـ Quotes تجريبية
+    const serverQuotes = data.slice(0, 5).map(item => ({
+      text: item.title,
+      category: "server"
+    }));
+
+    resolveConflicts(serverQuotes);
+
+  } catch (err) {
+    console.error("Error fetching from server:", err);
+  }
+}
+
+// رفع Quote جديدة للسيرفر (محاكاة)
+async function postToServer(quote) {
+  try {
+    await fetch(SERVER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(quote)
+    });
+  } catch (err) {
+    console.error("Error posting to server:", err);
+  }
+}
+
+// دالة حل التعارض (Conflict Resolution)
+// هنا الاستراتيجية = السيرفر له الأولوية
+function resolveConflicts(serverQuotes) {
+  let updated = false;
+
+  serverQuotes.forEach(serverQuote => {
+    if (!quotes.some(q => q.text === serverQuote.text)) {
+      quotes.push(serverQuote);
+      updated = true;
+    }
+  });
+
+  if (updated) {
+    saveQuotes();
+    showNotification("🔄 Data synced with server. Conflicts resolved.");
+    displayQuotes();
+  }
+}
+
+// إشعار المستخدم
+function showNotification(message) {
+  const note = document.getElementById("notification");
+  note.textContent = message;
+  note.style.display = "block";
+  setTimeout(() => (note.style.display = "none"), 4000);
+}
+
+// مزامنة يدوية
+function manualSync() {
+  fetchFromServer();
+}
+
+// مزامنة دورية (كل 30 ثانية)
+setInterval(fetchFromServer, 30000);
+
+// أول تحميل
+document.addEventListener("DOMContentLoaded", () => {
+  displayQuotes();
+  fetchFromServer();
+});
+
 
  

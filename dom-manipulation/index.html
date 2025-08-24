@@ -21,30 +21,65 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dynamic Quote Generator</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    #notification {
+      display: none;
+      background: #fffae6;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ffc107;
+      border-radius: 5px;
+    }
+    #quoteContainer {
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    button {
+      padding: 10px 15px;
+      margin: 10px 5px 0 0;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .sync-btn {
+      background: #007bff;
+      color: white;
+    }
+    .add-btn {
+      background: #28a745;
+      color: white;
+    }
+    input {
+      padding: 8px;
+      width: 70%;
+      margin-right: 5px;
+    }
+  </style>
 </head>
 <body>
-  
-  <h1>Dynamic Quote Generator</h1>
-    <!-- إشعار Sync -->
-  <div id="syncStatus">🔄 Syncing...</div>
+  <h1>🌟 Dynamic Quote Generator</h1>
 
-  <!-- فلترة الكوتس -->
-  <label for="categoryFilter">Filter by Category:</label>
-  <select id="categoryFilter"></select>
+  <div id="notification">🔄 Data synced with server. Conflicts resolved.</div>
 
-  <!-- مكان عرض الكوت -->
-  <div id="quoteDisplay"></div>
-  <button id="newQuote">Show New Quote</button>
+  <div>
+    <input type="text" id="newQuote" placeholder="Enter a new quote">
+    <button class="add-btn" onclick="addQuote()">➕ Add Quote</button>
+    <button class="sync-btn" onclick="manualSync()">🔄 Sync Now</button>
+  </div>
 
-  <!-- الفورم -->
-  <div id="formContainer"></div>
-
-  <hr>
-
-  <!-- JSON Export / Import -->
-  <button id="exportBtn">Export Quotes (JSON)</button>
-  <input type="file" id="importFile" accept=".json" />
+  <div id="quoteContainer"></div>
 
   <script src="script.js"></script>
 </body>
