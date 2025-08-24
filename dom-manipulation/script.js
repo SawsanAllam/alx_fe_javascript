@@ -107,6 +107,7 @@ const quoteDisplay = document.getElementById("quoteDisplay");
 const newQuoteBtn = document.getElementById("newQuote");
 const exportBtn = document.getElementById("exportBtn");
 const importFile = document.getElementById("importFile");
+const categoryFilter = document.getElementById("categoryFilter");
 
 let quotes = [
   { text: "Those who don’t believe in magic will never find it.", category: "Inspiration" },
@@ -129,27 +130,54 @@ function saveQuotes() {
   localStorage.setItem("quotes", JSON.stringify(quotes));
 }
 
-// 🔹 عرض كوت عشوائية
-function showRandomQuote() {
-  let randomIndex = Math.floor(Math.random() * quotes.length);
-  let randomQuote = quotes[randomIndex];
+// ============================
+//  فلترة الكوتس حسب الكاتيجوري
+// ============================
+function populateCategories() {
+  // نجيب كل الكاتيجوريز الفريدة
+  const categories = ["all", ...new Set(quotes.map(q => q.category))];
 
-  // حفظ آخر كوت في Session Storage
-  sessionStorage.setItem("lastQuote", JSON.stringify(randomQuote));
+  categoryFilter.innerHTML = "";
+  categories.forEach(cat => {
+    const option = document.createElement("option");
+    option.value = cat;
+    option.textContent = cat;
+    categoryFilter.appendChild(option);
+  });
 
-  quoteDisplay.innerHTML = `<p>"${randomQuote.text}"</p><small>- ${randomQuote.category}</small>`;
+  // تحميل آخر فلتر محفوظ من localStorage
+  const savedFilter = localStorage.getItem("selectedCategory");
+  if (savedFilter && categories.includes(savedFilter)) {
+    categoryFilter.value = savedFilter;
+  } else {
+    categoryFilter.value = "all";
+  }
 }
 
-// 🔹 تحميل آخر كوت من Session Storage لو موجود
-let lastQuote = sessionStorage.getItem("lastQuote");
-if (lastQuote) {
-  let parsedQuote = JSON.parse(lastQuote);
-  quoteDisplay.innerHTML = `<p>"${parsedQuote.text}"</p><small>- ${parsedQuote.category}</small>`;
+// فلترة الكوتس حسب الكاتيجوري
+function filterQuotes() {
+  const selectedCategory = categoryFilter.value;
+  localStorage.setItem("selectedCategory", selectedCategory);
+
+  let filteredQuotes = selectedCategory === "all" 
+    ? quotes 
+    : quotes.filter(q => q.category === selectedCategory);
+
+  if (filteredQuotes.length > 0) {
+    let randomIndex = Math.floor(Math.random() * filteredQuotes.length);
+    let randomQuote = filteredQuotes[randomIndex];
+    quoteDisplay.innerHTML = `<p>"${randomQuote.text}"</p><small>- ${randomQuote.category}</small>`;
+  } else {
+    quoteDisplay.innerHTML = `<p>No quotes available in this category.</p>`;
+  }
 }
 
-newQuoteBtn.addEventListener("click", showRandomQuote);
+// عند الضغط على زر "Show New Quote"
+newQuoteBtn.addEventListener("click", filterQuotes);
 
-// 🔹 إنشاء فورم إضافة كوت جديدة
+// ============================
+//  الفورم لإضافة كوتس جديدة
+// ============================
 function createAddQuoteForm() {
   const formDiv = document.getElementById("formContainer");
 
@@ -172,6 +200,7 @@ function createAddQuoteForm() {
     if (newQuoteAdd.text && newQuoteAdd.category) {
       quotes.push(newQuoteAdd);
       saveQuotes();
+      populateCategories(); // تحديث الكاتيجوريز
       textInput.value = "";
       categoryInput.value = "";
       alert("Quote added successfully!");
@@ -187,7 +216,9 @@ function createAddQuoteForm() {
 
 createAddQuoteForm();
 
-// 🔹 Export Quotes to JSON
+// ============================
+//  Export Quotes to JSON
+// ============================
 exportBtn.addEventListener("click", function () {
   const blob = new Blob([JSON.stringify(quotes, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -198,7 +229,9 @@ exportBtn.addEventListener("click", function () {
   URL.revokeObjectURL(url);
 });
 
-// 🔹 Import Quotes from JSON
+// ============================
+//  Import Quotes from JSON
+// ============================
 importFile.addEventListener("change", function (event) {
   const fileReader = new FileReader();
   fileReader.onload = function (e) {
@@ -207,6 +240,7 @@ importFile.addEventListener("change", function (event) {
       if (Array.isArray(importedQuotes)) {
         quotes.push(...importedQuotes);
         saveQuotes();
+        populateCategories(); // تحديث الكاتيجوريز بعد الاستيراد
         alert("Quotes imported successfully!");
       } else {
         alert("Invalid JSON format!");
@@ -217,5 +251,11 @@ importFile.addEventListener("change", function (event) {
   };
   fileReader.readAsText(event.target.files[0]);
 });
+
+// ============================
+//  تحميل الفلتر + عرض أول كوت
+// ============================
+populateCategories();
+filterQuotes();
 
  
